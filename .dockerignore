@@ -1,0 +1,26 @@
+# Git / VCS
+.git
+.gitignore
+
+# Node dependencies (installed during build)
+node_modules
+
+# Development source (not needed in image)
+src
+*.ts
+tsconfig.json
+
+# Documentation and examples
+README.md
+docker-compose.yml
+LICENSE
+
+# Editor / OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test artifacts
+coverage/
+*.log
