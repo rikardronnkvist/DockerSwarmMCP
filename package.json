@@ -1,0 +1,29 @@
+{
+  "name": "docker-swarm-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Docker Swarm operations",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node build/index.js",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dockerode": "^5.0.0",
+    "express": "^5.2.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^4.0.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

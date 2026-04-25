@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  dockerswarm-mcp:
+    image: dockerswarm-mcp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Expose the MCP HTTP port to the host (loopback only for safety)
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      # Transport: http (default) or stdio
+      MCP_TRANSPORT: http
+      # Bind address inside the container
+      MCP_BIND: "0.0.0.0"
+      PORT: "3000"
+      # Allow requests without an Origin header (e.g. curl / CLI tools)
+      MCP_ALLOW_NO_ORIGIN: "true"
+      # Comma-separated Origin allowlist (leave empty to skip Origin checks)
+      # MCP_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      # Set to "false" to enable write operations (scale service, etc.)
+      READ_ONLY: "true"
+      # Override Docker socket / host (optional)
+      # DOCKER_HOST: "tcp://192.168.1.100:2375"
+    volumes:
+      # Mount the Docker socket so the server can talk to the Swarm manager
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    # The service must run on a Swarm manager node
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
