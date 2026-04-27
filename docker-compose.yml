@@ -27,6 +27,7 @@ services:
     volumes:
       # Mount the Docker socket so the server can talk to the Swarm manager
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    user: root
     restart: unless-stopped
     # The service must run on a Swarm manager node
     deploy:
