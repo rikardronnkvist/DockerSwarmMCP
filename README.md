@@ -59,6 +59,34 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 
 ## How to Run
 
+## Container Publishing
+
+This repository can publish its container image automatically to GitHub Container Registry (GHCR) using the workflow in `.github/workflows/publish-container.yml`.
+
+- Registry path: `ghcr.io/<owner>/<repo>`
+- For this repository: `ghcr.io/rikardronnkvist/dockerswarmmcp`
+- `main` publishes `:latest`
+- Git tags like `v1.2.3` publish versioned tags alongside the commit SHA tag
+
+Example pull:
+
+```bash
+docker pull ghcr.io/rikardronnkvist/dockerswarmmcp:latest
+```
+
+Example run:
+
+```bash
+docker run -d \
+  --name dockerswarm-mcp \
+  -p 3000:3000 \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e MCP_BIND=0.0.0.0 \
+  -e MCP_ALLOW_NO_ORIGIN=true \
+  -e READ_ONLY=true \
+  ghcr.io/rikardronnkvist/dockerswarmmcp:latest
+```
+
 ### Prerequisites
 
 - Docker Engine with Swarm mode initialised (`docker swarm init`)
