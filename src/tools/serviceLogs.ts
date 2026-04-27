@@ -10,6 +10,8 @@ import type stream from 'node:stream';
 
 const MAX_LOG_BYTES = 1_000_000; // 1 MB
 
+type LogPayload = stream.Readable | Buffer | Uint8Array | string;
+
 const inputSchema = {
   service: z.string().min(1).describe('Service name or ID'),
   sinceSeconds: z
@@ -61,18 +63,72 @@ async function readStream(
   });
 }
 
+async function readLogPayload(
+  payload: LogPayload,
+  maxBytes: number,
+): Promise<{ data: Buffer; truncated: boolean }> {
+  if (typeof payload === 'string') {
+    const data = Buffer.from(payload);
+    return {
+      data: data.subarray(0, maxBytes),
+      truncated: data.length > maxBytes,
+    };
+  }
+
+  if (Buffer.isBuffer(payload)) {
+    return {
+      data: payload.subarray(0, maxBytes),
+      truncated: payload.length > maxBytes,
+    };
+  }
+
+  if (payload instanceof Uint8Array) {
+    const data = Buffer.from(payload);
+    return {
+      data: data.subarray(0, maxBytes),
+      truncated: data.length > maxBytes,
+    };
+  }
+
+  if (payload && typeof payload.on === 'function') {
+    return readStream(payload, maxBytes);
+  }
+
+  const payloadType = payload === null ? 'null' : typeof payload;
+  throw new Error(`Unsupported logs payload type: ${payloadType}`);
+}
+
+function normaliseLogText(text: string): string {
+  return text
+    .split('\n')
+    .map(line => line.trimEnd())
+    .filter(line => line.length > 0)
+    .join('\n');
+}
+
 /**
  * Docker multiplexed stream frames start with an 8-byte header:
  * [stream_type(1), 0, 0, 0, size(4 big-endian)]
  * This function strips those headers to return plain text.
  */
 function demuxDockerStream(buf: Buffer): string {
+  if (buf.length < 8) {
+    return normaliseLogText(buf.toString('utf8'));
+  }
+
   const lines: string[] = [];
   let offset = 0;
 
   while (offset < buf.length) {
     // Need at least 8 bytes for the header
-    if (offset + 8 > buf.length) break;
+    if (offset + 8 > buf.length) {
+      return normaliseLogText(buf.toString('utf8'));
+    }
+
+    const streamType = buf[offset];
+    if (streamType !== 1 && streamType !== 2 && streamType !== 3) {
+      return normaliseLogText(buf.toString('utf8'));
+    }
 
     const size = buf.readUInt32BE(offset + 4);
     offset += 8;
@@ -90,13 +146,7 @@ function demuxDockerStream(buf: Buffer): string {
     offset += size;
   }
 
-  const raw = lines.join('');
-  // Normalise – split by newline and rejoin so we have consistent separators
-  return raw
-    .split('\n')
-    .map(l => l.trimEnd())
-    .filter(l => l.length > 0)
-    .join('\n');
+  return normaliseLogText(lines.join(''));
 }
 
 export function registerServiceLogs(server: McpServer): void {
@@ -112,7 +162,7 @@ export function registerServiceLogs(server: McpServer): void {
         const svc = docker.getService(args.service);
 
         // Fetch logs from the service
-        const logStream = await svc.logs({
+        const logPayload = await svc.logs({
           stdout: true,
           stderr: true,
           tail: args.tail,
@@ -121,14 +171,7 @@ export function registerServiceLogs(server: McpServer): void {
           follow: false,
         });
 
-        // Validate the stream before using it
-        if (!logStream || typeof logStream.on !== 'function') {
-          throw new Error(
-            'Service logs API did not return a readable stream. Service may not exist or Docker API version incompatibility.',
-          );
-        }
-
-        const { data, truncated } = await readStream(logStream as stream.Readable, MAX_LOG_BYTES);
+        const { data, truncated } = await readLogPayload(logPayload as LogPayload, MAX_LOG_BYTES);
         const text = demuxDockerStream(data);
 
         const suffix = truncated
