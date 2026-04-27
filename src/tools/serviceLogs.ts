@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getDockerClient, assertSwarmManager } from '../docker/client.js';
 import type stream from 'node:stream';
+import { logger } from '../util/logger.js';
 
 const MAX_LOG_BYTES = 1_000_000; // 1 MB
 
@@ -98,6 +99,22 @@ async function readLogPayload(
   throw new Error(`Unsupported logs payload type: ${payloadType}`);
 }
 
+function describeLogPayload(payload: unknown): string {
+  if (payload === null) return 'null';
+  if (payload === undefined) return 'undefined';
+  if (typeof payload === 'string') return `string(length=${payload.length})`;
+  if (Buffer.isBuffer(payload)) return `Buffer(length=${payload.length})`;
+  if (payload instanceof Uint8Array) return `Uint8Array(length=${payload.length})`;
+
+  if (typeof payload === 'object') {
+    const constructorName = payload.constructor?.name ?? 'Object';
+    const hasOn = typeof (payload as { on?: unknown }).on === 'function';
+    return hasOn ? `${constructorName}(readable-stream)` : constructorName;
+  }
+
+  return typeof payload;
+}
+
 function normaliseLogText(text: string): string {
   return text
     .split('\n')
@@ -160,19 +177,35 @@ export function registerServiceLogs(server: McpServer): void {
         const docker = getDockerClient();
 
         const svc = docker.getService(args.service);
+        const since = Math.floor(Date.now() / 1000) - args.sinceSeconds;
+
+        logger.debug(
+          `swarm_service_logs request: service=${args.service} tail=${args.tail} since=${since} timestamps=${args.timestamps}`,
+        );
 
         // Fetch logs from the service
         const logPayload = await svc.logs({
           stdout: true,
           stderr: true,
           tail: args.tail,
-          since: Math.floor(Date.now() / 1000) - args.sinceSeconds,
+          since,
           timestamps: args.timestamps,
           follow: false,
         });
 
+        logger.debug(
+          `swarm_service_logs payload: service=${args.service} type=${describeLogPayload(logPayload)}`,
+        );
+
         const { data, truncated } = await readLogPayload(logPayload as LogPayload, MAX_LOG_BYTES);
+        logger.debug(
+          `swarm_service_logs bytes: service=${args.service} bytes=${data.length} truncated=${truncated}`,
+        );
+
         const text = demuxDockerStream(data);
+        logger.debug(
+          `swarm_service_logs decoded: service=${args.service} textLength=${text.length}`,
+        );
 
         const suffix = truncated
           ? '\n\n[Output truncated at 1 MB. Use a smaller tail or sinceSeconds to reduce output.]'
@@ -188,6 +221,7 @@ export function registerServiceLogs(server: McpServer): void {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        logger.error(`swarm_service_logs failed: service=${args.service} error=${message}`);
         return {
           content: [
             {
