@@ -26,7 +26,11 @@ LABEL org.opencontainers.image.licenses="MIT"
 WORKDIR /app
 
 # Non-root user for least-privilege execution
-RUN addgroup -S mcp && adduser -S -G mcp mcp
+# Add mcp user to docker group so it can access docker.sock
+RUN addgroup -S docker 2>/dev/null || true && \
+    addgroup -S mcp && \
+    adduser -S -G mcp mcp && \
+    addgroup mcp docker
 
 # Copy only what the server needs at runtime
 COPY --from=builder /app/node_modules ./node_modules
