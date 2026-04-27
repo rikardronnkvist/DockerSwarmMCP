@@ -20,6 +20,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 | `swarm_list_nodes` | List Swarm nodes filtered by role and/or availability |
 | `swarm_service_logs` | Fetch recent logs from a service (up to 1 MB) |
 | `traefik_read_config` | Read Traefik API config/runtime data (**only available when `TRAEFIK_URL` is set**) |
+| `swarm_exec_container` | Execute a command inside a container (**only available when `ENABLE_CONTAINER_EXEC=true`**) |
 
 ### Tool inputs
 
@@ -61,6 +62,25 @@ Only registered when `TRAEFIK_URL` is set.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
+
+#### `swarm_exec_container` (optional)
+Only registered when `ENABLE_CONTAINER_EXEC=true`. Executes a command inside a container and returns stdout, stderr, and exit code.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `containerIdOrName` | `string` | **required** | Container ID or name |
+| `command` | `string[]` | **required** | Command and arguments to execute (e.g., `["ping", "-c", "4", "8.8.8.8"]`) |
+| `workingDir` | `string` | — | Working directory for the command (optional) |
+| `user` | `string` | — | User to run command as (optional, defaults to container default) |
+
+**Output:**
+```json
+{
+  "exitCode": 0,
+  "stdout": "...",
+  "stderr": "..."
+}
+```
 | `endpoint` | `"rawdata" \| "overview" \| "http/routers" \| "http/services" \| "http/middlewares"` | `"rawdata"` | Which Traefik API view to read |
 
 ---
@@ -199,10 +219,26 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 | `READ_ONLY` | `true` | `true` = refuse all write operations (scale, etc.) |
 | `DOCKER_HOST` | *(socket)* | Override Docker endpoint, e.g. `tcp://192.168.1.1:2375` |
 | `TRAEFIK_URL` | *(unset)* | Base URL for Traefik API; when set, enables `traefik_read_config` |
+| `ENABLE_CONTAINER_EXEC` | `false` | `true` = enables `swarm_exec_container` tool (**⚠️ security sensitive**) |
 
 ### TLS / DOCKER_HOST
 
 When using `DOCKER_HOST=tcp://…`, TLS is **not** handled by this server (v1). Terminate TLS externally (e.g. a TLS-terminating proxy, stunnel, or SSH tunnel) and point `DOCKER_HOST` at the plaintext endpoint. Full TLS support (`DOCKER_TLS_VERIFY`, cert/key files) is planned for a future release.
+
+### Security: Container Execution
+
+The `swarm_exec_container` tool is **disabled by default** and must be explicitly enabled via `ENABLE_CONTAINER_EXEC=true`. This tool allows executing arbitrary commands inside containers.
+
+⚠️ **Enabling this feature allows the MCP server client to run any command in any container with the privileges of the Docker user (often root).** Only enable this feature in trusted environments where:
+- The MCP client is trustworthy
+- Network access to the MCP server is controlled and authenticated
+- You understand the full implications of remote command execution
+
+Best practices:
+1. **Keep disabled in production** unless absolutely required
+2. **Use together with network restrictions** (firewall, VPN, private network)
+3. **Monitor audit logs** for unexpected command execution
+4. **Rotate credentials** regularly if container command execution is enabled
 
 ---
 

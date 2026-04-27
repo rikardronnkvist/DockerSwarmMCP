@@ -26,6 +26,9 @@ services:
       # DOCKER_HOST: "tcp://192.168.1.100:2375"
       # Optional: enable Traefik config read tool (traefik_read_config)
       # TRAEFIK_URL: "http://traefik:8080"
+      # Optional: enable container command execution tool (swarm_exec_container)
+      # WARNING: Only enable in secure environments. Allows running arbitrary commands in containers.
+      # ENABLE_CONTAINER_EXEC: "true"
     volumes:
       # Mount the Docker socket so the server can talk to the Swarm manager
       - /var/run/docker.sock:/var/run/docker.sock:ro

@@ -9,6 +9,7 @@ import { registerScaleService } from '../tools/scaleService.js';
 import { registerListNodes } from '../tools/listNodes.js';
 import { registerServiceLogs } from '../tools/serviceLogs.js';
 import { registerReadTraefikConfig } from '../tools/readTraefikConfig.js';
+import { registerExecContainerCommand } from '../tools/execContainerCommand.js';
 
 export function createMcpServer(): McpServer {
   const server = new McpServer(
@@ -23,7 +24,8 @@ export function createMcpServer(): McpServer {
       instructions:
         'This server exposes Docker Swarm management operations as MCP tools. ' +
         'Connect to a Swarm manager node to use swarm_list_services, ' +
-        'swarm_inspect_service, swarm_scale_service, swarm_list_nodes, and swarm_service_logs. ' +
+        'swarm_inspect_service, swarm_scale_service, swarm_list_nodes, and sw ' +
+        'If ENABLE_CONTAINER_EXEC is set to true, swarm_exec_container is available for executing commands in containers.arm_service_logs. ' +
         'If TRAEFIK_URL is configured, traefik_read_config is also available.',
     },
   );
@@ -38,6 +40,11 @@ export function createMcpServer(): McpServer {
   if (traefikUrl) {
     registerReadTraefikConfig(server, traefikUrl);
   }
+const enableContainerExec = process.env['ENABLE_CONTAINER_EXEC']?.toLowerCase() === 'true';
+  if (enableContainerExec) {
+    registerExecContainerCommand(server);
+  }
 
+  
   return server;
 }
