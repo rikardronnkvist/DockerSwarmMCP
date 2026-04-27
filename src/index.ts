@@ -58,9 +58,15 @@ function logTraefikStatus(): void {
   }
 }
 
+function logContainerExecStatus(): void {
+  const enableContainerExec = process.env['ENABLE_CONTAINER_EXEC']?.toLowerCase() === 'true';
+  logger.info(`  Container exec: ${enableContainerExec}`);
+}
+
 async function startStdio(): Promise<void> {
   logger.info('Starting DockerSwarmMCP in stdio mode');
   logTraefikStatus();
+  logContainerExecStatus();
   const mcpServer = createMcpServer();
   const transport = new StdioServerTransport();
   await mcpServer.connect(transport);
@@ -110,6 +116,7 @@ async function startHttp(): Promise<void> {
     logger.info(`  Health check : http://${config.bindHost}:${config.port}/healthz`);
     logger.info(`  Read-only    : ${config.readOnly}`);
     logTraefikStatus();
+    logContainerExecStatus();
   });
 
   // Graceful shutdown
