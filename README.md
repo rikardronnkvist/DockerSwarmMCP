@@ -70,12 +70,13 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 # Build
 docker build -t dockerswarm-mcp .
 
-# Run – expose on loopback only (safest)
+# Run – expose for remote clients
 docker run -d \
   --name dockerswarm-mcp \
-  -p 127.0.0.1:3000:3000 \
+  -p 3000:3000 \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
   -e MCP_BIND=0.0.0.0 \
+  -e MCP_ALLOWED_HOSTS=docker01.casawero.home,localhost,127.0.0.1 \
   -e MCP_ALLOW_NO_ORIGIN=true \
   -e READ_ONLY=true \
   dockerswarm-mcp
@@ -122,6 +123,7 @@ curl -s http://127.0.0.1:3000/healthz
 
 ```bash
 curl -s -X POST http://127.0.0.1:3000/mcp \
+  -H "Accept: application/json, text/event-stream" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.0.1"}}}'
 ```
@@ -130,6 +132,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 
 ```bash
 curl -s -X POST http://127.0.0.1:3000/mcp \
+  -H "Accept: application/json, text/event-stream" \
   -H "Content-Type: application/json" \
   -H "mcp-session-id: <session-id-from-init>" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
@@ -139,6 +142,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 
 ```bash
 curl -s -X POST http://127.0.0.1:3000/mcp \
+  -H "Accept: application/json, text/event-stream" \
   -H "Content-Type: application/json" \
   -H "mcp-session-id: <session-id-from-init>" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"swarm_list_services","arguments":{}}}'
@@ -153,6 +157,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 | `MCP_TRANSPORT` | `http` | `http` or `stdio` |
 | `PORT` | `3000` | HTTP listen port |
 | `MCP_BIND` | `127.0.0.1` | HTTP bind address (`0.0.0.0` for all interfaces) |
+| `MCP_ALLOWED_HOSTS` | *(empty)* | Comma-separated Host header allowlist used when binding to `0.0.0.0`/`::` |
 | `MCP_ALLOWED_ORIGINS` | *(empty)* | Comma-separated Origin allowlist; empty = no Origin check |
 | `MCP_ALLOW_NO_ORIGIN` | `false` | Allow requests without an Origin header when allowlist is set |
 | `READ_ONLY` | `true` | `true` = refuse all write operations (scale, etc.) |
@@ -166,6 +171,68 @@ When using `DOCKER_HOST=tcp://…`, TLS is **not** handled by this server (v1). 
 
 ## AI Client Configuration
 
+### VS Code + GitHub Copilot
+
+GitHub Copilot in VS Code can connect to MCP servers through an `mcp.json` file.
+
+For a **remote Swarm**, run this MCP server on a Swarm manager host and point clients to that remote HTTP endpoint.
+Do not use `127.0.0.1` unless you are on the same machine or using an SSH tunnel.
+If the server binds to `0.0.0.0`, set `MCP_ALLOWED_HOSTS` to include the hostname clients use (for example `docker01.casawero.home`).
+
+You can configure this server in either location:
+
+- Workspace config (recommended for teams): `.vscode/mcp.json`
+- User profile config (available in all projects): run **MCP: Open User Configuration** from the Command Palette
+
+#### Workspace configuration (`.vscode/mcp.json`) – HTTP mode
+
+```json
+{
+  "servers": {
+    "docker-swarm": {
+      "type": "http",
+      "url": "http://docker01.example.com:3000/mcp"
+    }
+  }
+}
+```
+
+#### Optional: local stdio mode (not remote)
+
+This mode starts a local container from VS Code. It is useful only when VS Code can reach the target Docker API (for example via `DOCKER_HOST=tcp://...`), but for remote Swarm the HTTP mode above is usually simpler.
+
+```json
+{
+  "servers": {
+    "docker-swarm": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/var/run/docker.sock:/var/run/docker.sock:ro",
+        "-e", "MCP_TRANSPORT=stdio",
+        "dockerswarm-mcp"
+      ]
+    }
+  }
+}
+```
+
+After adding the server:
+
+1. Open the Command Palette and run **MCP: List Servers**.
+2. Start or restart `docker-swarm` if needed.
+3. Accept the trust prompt for the server.
+4. Open Copilot Chat and use the server tools (for example, ask it to list Swarm services).
+
+Troubleshooting in VS Code:
+
+- Run **MCP: List Servers** and select **Show Output** to inspect server logs.
+- If tools do not appear, restart the server from **MCP: List Servers** and reopen Copilot Chat.
+- If startup fails with `TypeError: fetch failed`, test reachability from your VS Code machine with `curl -sS http://docker01.casawero.home:3000/healthz`.
+- Ensure your container publish is remote-accessible (`-p 3000:3000`, not `127.0.0.1:3000:3000`) and that firewall rules allow TCP/3000.
+- When `MCP_BIND=0.0.0.0`, verify `MCP_ALLOWED_HOSTS` includes the hostname used in the MCP URL.
+
 ### Claude Desktop (`claude_desktop_config.json`)
 
 **HTTP mode** (server already running):
@@ -175,7 +242,7 @@ When using `DOCKER_HOST=tcp://…`, TLS is **not** handled by this server (v1). 
   "mcpServers": {
     "docker-swarm": {
       "type": "http",
-      "url": "http://127.0.0.1:3000/mcp"
+      "url": "http://docker01.example.com:3000/mcp"
     }
   }
 }
@@ -200,6 +267,21 @@ When using `DOCKER_HOST=tcp://…`, TLS is **not** handled by this server (v1). 
 ```
 
 ### Cursor (`~/.cursor/mcp.json`)
+
+Remote Swarm (recommended):
+
+```json
+{
+  "mcpServers": {
+    "docker-swarm": {
+      "type": "http",
+      "url": "http://docker01.example.com:3000/mcp"
+    }
+  }
+}
+```
+
+Local stdio mode:
 
 ```json
 {
@@ -238,6 +320,7 @@ When `MCP_ALLOWED_ORIGINS` is set, the server rejects requests whose `Origin` he
 ```
 
 The SDK also automatically validates the `Host` header when binding to `127.0.0.1` or `localhost`.
+When binding to `0.0.0.0` for remote clients, set `MCP_ALLOWED_HOSTS` to include expected external hostname(s).
 
 ### READ_ONLY mode
 

@@ -10,6 +10,7 @@ export interface SecurityConfig {
   transport: 'http' | 'stdio';
   bindHost: string;
   port: number;
+  allowedHosts: string[];
   allowedOrigins: string[];
   allowNoOrigin: boolean;
   readOnly: boolean;
@@ -24,10 +25,16 @@ export function loadConfig(): SecurityConfig {
   const bindHost = process.env['MCP_BIND'] ?? '127.0.0.1';
   const port = parseInt(process.env['PORT'] ?? '3000', 10);
 
+  const rawHosts = process.env['MCP_ALLOWED_HOSTS'] ?? '';
+  const allowedHosts = rawHosts
+    .split(',')
+    .map((h: string) => h.trim())
+    .filter(Boolean);
+
   const rawOrigins = process.env['MCP_ALLOWED_ORIGINS'] ?? '';
   const allowedOrigins = rawOrigins
     .split(',')
-    .map(o => o.trim())
+    .map((o: string) => o.trim())
     .filter(Boolean);
 
   const allowNoOrigin = process.env['MCP_ALLOW_NO_ORIGIN'] === 'true';
@@ -39,6 +46,7 @@ export function loadConfig(): SecurityConfig {
     transport: transport === 'stdio' ? 'stdio' : 'http',
     bindHost,
     port,
+    allowedHosts,
     allowedOrigins,
     allowNoOrigin,
     readOnly,

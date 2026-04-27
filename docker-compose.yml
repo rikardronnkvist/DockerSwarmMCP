@@ -6,9 +6,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # Expose the MCP HTTP port to the host (loopback only for safety)
+    # Expose the MCP HTTP port to the host
+    # For local-only access, change to: 127.0.0.1:3000:3000
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       # Transport: http (default) or stdio
       MCP_TRANSPORT: http
@@ -19,6 +20,8 @@ services:
       MCP_ALLOW_NO_ORIGIN: "true"
       # Comma-separated Origin allowlist (leave empty to skip Origin checks)
       # MCP_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      # Optional Host header allowlist when binding to 0.0.0.0/::
+      # MCP_ALLOWED_HOSTS: "docker01.contoso.home,localhost,127.0.0.1"
       # Set to "false" to enable write operations (scale service, etc.)
       READ_ONLY: "true"
       # Override Docker socket / host (optional)

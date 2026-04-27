@@ -33,7 +33,12 @@ async function startHttp(): Promise<void> {
     host: config.bindHost,
     // Pass allowed hosts if binding to 0.0.0.0 so the SDK can protect them
     ...(config.bindHost === '0.0.0.0' || config.bindHost === '::'
-      ? { allowedHosts: ['localhost', '127.0.0.1', '[::1]'] }
+      ? {
+          allowedHosts:
+            config.allowedHosts.length > 0
+              ? config.allowedHosts
+              : ['localhost', '127.0.0.1', '[::1]'],
+        }
       : {}),
   });
 
