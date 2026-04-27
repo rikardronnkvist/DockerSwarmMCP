@@ -5,10 +5,9 @@
 # Node dependencies (installed during build)
 node_modules
 
-# Development source (not needed in image)
-src
-*.ts
-tsconfig.json
+# Keep build inputs available in context:
+# - TypeScript source under src/
+# - tsconfig.json for compilation
 
 # Documentation and examples
 README.md
