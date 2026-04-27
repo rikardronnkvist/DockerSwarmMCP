@@ -19,6 +19,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 | `swarm_scale_service` | Scale a replicated service (requires `READ_ONLY=false` **and** `force=true`) |
 | `swarm_list_nodes` | List Swarm nodes filtered by role and/or availability |
 | `swarm_service_logs` | Fetch recent logs from a service (up to 1 MB) |
+| `traefik_read_config` | Read Traefik API config/runtime data (**only available when `TRAEFIK_URL` is set**) |
 
 ### Tool inputs
 
@@ -54,6 +55,13 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 | `sinceSeconds` | `integer` | `3600` | How far back to fetch (seconds) |
 | `tail` | `integer` | `200` | Maximum lines to return (1–10000) |
 | `timestamps` | `boolean` | `false` | Include timestamps in each line |
+
+#### `traefik_read_config` (optional)
+Only registered when `TRAEFIK_URL` is set.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `endpoint` | `"rawdata" \| "overview" \| "http/routers" \| "http/services" \| "http/middlewares"` | `"rawdata"` | Which Traefik API view to read |
 
 ---
 
@@ -190,6 +198,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 | `MCP_ALLOW_NO_ORIGIN` | `false` | Allow requests without an Origin header when allowlist is set |
 | `READ_ONLY` | `true` | `true` = refuse all write operations (scale, etc.) |
 | `DOCKER_HOST` | *(socket)* | Override Docker endpoint, e.g. `tcp://192.168.1.1:2375` |
+| `TRAEFIK_URL` | *(unset)* | Base URL for Traefik API; when set, enables `traefik_read_config` |
 
 ### TLS / DOCKER_HOST
 
