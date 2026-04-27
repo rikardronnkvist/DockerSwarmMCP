@@ -111,16 +111,24 @@ export function registerServiceLogs(server: McpServer): void {
 
         const svc = docker.getService(args.service);
 
-        const logStream = (await svc.logs({
+        // Fetch logs from the service
+        const logStream = await svc.logs({
           stdout: true,
           stderr: true,
           tail: args.tail,
           since: Math.floor(Date.now() / 1000) - args.sinceSeconds,
           timestamps: args.timestamps,
           follow: false,
-        })) as stream.Readable;
+        });
 
-        const { data, truncated } = await readStream(logStream, MAX_LOG_BYTES);
+        // Validate the stream before using it
+        if (!logStream || typeof logStream.on !== 'function') {
+          throw new Error(
+            'Service logs API did not return a readable stream. Service may not exist or Docker API version incompatibility.',
+          );
+        }
+
+        const { data, truncated } = await readStream(logStream as stream.Readable, MAX_LOG_BYTES);
         const text = demuxDockerStream(data);
 
         const suffix = truncated
