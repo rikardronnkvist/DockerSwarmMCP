@@ -21,7 +21,7 @@ services:
       # Optional Host header allowlist. Leave unset to allow all hosts.
       # MCP_ALLOWED_HOSTS: "docker01.contoso.local,docker01,localhost,127.0.0.1"
       # Set to "false" to enable write operations (scale service, etc.)
-      READ_ONLY: "true"
+      READ_ONLY: "false"
       # Override Docker socket / host (optional)
       # DOCKER_HOST: "tcp://192.168.1.100:2375"
     volumes:
