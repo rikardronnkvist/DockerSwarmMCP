@@ -13,6 +13,41 @@ import { createMcpServer } from './mcp/server.js';
 import { loadConfig, originValidationMiddleware } from './util/security.js';
 import { logger } from './util/logger.js';
 
+interface JsonRpcRequestLike {
+  method?: unknown;
+  id?: unknown;
+  params?: {
+    name?: unknown;
+  };
+}
+
+function logMcpRequest(body: unknown): void {
+  const requests = Array.isArray(body) ? body : [body];
+
+  for (const request of requests) {
+    if (!request || typeof request !== 'object') {
+      logger.debug('MCP request received with non-object body');
+      continue;
+    }
+
+    const jsonRpcRequest = request as JsonRpcRequestLike;
+    const method =
+      typeof jsonRpcRequest.method === 'string' ? jsonRpcRequest.method : 'unknown-method';
+    const id = jsonRpcRequest.id == null ? 'notification' : JSON.stringify(jsonRpcRequest.id);
+
+    if (method === 'tools/call') {
+      const toolName =
+        typeof jsonRpcRequest.params?.name === 'string'
+          ? jsonRpcRequest.params.name
+          : 'unknown-tool';
+      logger.debug(`MCP request: method=${method} tool=${toolName} id=${id}`);
+      continue;
+    }
+
+    logger.debug(`MCP request: method=${method} id=${id}`);
+  }
+}
+
 async function startStdio(): Promise<void> {
   logger.info('Starting DockerSwarmMCP in stdio mode');
   const mcpServer = createMcpServer();
@@ -46,6 +81,8 @@ async function startHttp(): Promise<void> {
 
   // Stateless MCP endpoint – a new transport per request keeps things simple
   app.all('/mcp', async (req, res) => {
+    logMcpRequest(req.body);
+
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless
     });
