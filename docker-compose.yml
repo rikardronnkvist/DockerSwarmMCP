@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   dockerswarm-mcp:
     image: dockerswarm-mcp:latest
