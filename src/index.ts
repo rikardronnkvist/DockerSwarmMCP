@@ -48,8 +48,19 @@ function logMcpRequest(body: unknown): void {
   }
 }
 
+function logTraefikStatus(): void {
+  const traefikUrl = process.env['TRAEFIK_URL']?.trim();
+
+  if (traefikUrl) {
+    logger.info(`  Traefik URL  : ${traefikUrl}`);
+  } else {
+    logger.info('  Traefik URL  : (disabled; set TRAEFIK_URL to enable traefik_read_config)');
+  }
+}
+
 async function startStdio(): Promise<void> {
   logger.info('Starting DockerSwarmMCP in stdio mode');
+  logTraefikStatus();
   const mcpServer = createMcpServer();
   const transport = new StdioServerTransport();
   await mcpServer.connect(transport);
@@ -98,6 +109,7 @@ async function startHttp(): Promise<void> {
     logger.info(`  MCP endpoint : http://${config.bindHost}:${config.port}/mcp`);
     logger.info(`  Health check : http://${config.bindHost}:${config.port}/healthz`);
     logger.info(`  Read-only    : ${config.readOnly}`);
+    logTraefikStatus();
   });
 
   // Graceful shutdown

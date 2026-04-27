@@ -9,7 +9,6 @@ import { registerScaleService } from '../tools/scaleService.js';
 import { registerListNodes } from '../tools/listNodes.js';
 import { registerServiceLogs } from '../tools/serviceLogs.js';
 import { registerReadTraefikConfig } from '../tools/readTraefikConfig.js';
-import { logger } from '../util/logger.js';
 
 export function createMcpServer(): McpServer {
   const server = new McpServer(
@@ -38,9 +37,6 @@ export function createMcpServer(): McpServer {
   const traefikUrl = process.env['TRAEFIK_URL']?.trim();
   if (traefikUrl) {
     registerReadTraefikConfig(server, traefikUrl);
-    logger.info(`Enabled Traefik config reader tool with TRAEFIK_URL=${traefikUrl}`);
-  } else {
-    logger.info('Traefik config reader tool disabled (set TRAEFIK_URL to enable)');
   }
 
   return server;
