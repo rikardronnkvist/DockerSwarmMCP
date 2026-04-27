@@ -157,7 +157,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 | `MCP_TRANSPORT` | `http` | `http` or `stdio` |
 | `PORT` | `3000` | HTTP listen port |
 | `MCP_BIND` | `127.0.0.1` | HTTP bind address (`0.0.0.0` for all interfaces) |
-| `MCP_ALLOWED_HOSTS` | *(empty)* | Comma-separated Host header allowlist used when binding to `0.0.0.0`/`::` |
+| `MCP_ALLOWED_HOSTS` | *(empty = allow all)* | Comma-separated Host header allowlist; if set, only listed Host headers are accepted |
 | `MCP_ALLOWED_ORIGINS` | *(empty)* | Comma-separated Origin allowlist; empty = no Origin check |
 | `MCP_ALLOW_NO_ORIGIN` | `false` | Allow requests without an Origin header when allowlist is set |
 | `READ_ONLY` | `true` | `true` = refuse all write operations (scale, etc.) |
@@ -177,7 +177,7 @@ GitHub Copilot in VS Code can connect to MCP servers through an `mcp.json` file.
 
 For a **remote Swarm**, run this MCP server on a Swarm manager host and point clients to that remote HTTP endpoint.
 Do not use `127.0.0.1` unless you are on the same machine or using an SSH tunnel.
-If the server binds to `0.0.0.0`, set `MCP_ALLOWED_HOSTS` to include the hostname clients use (for example `docker01.casawero.home`).
+By default, host filtering is disabled (all Host headers allowed). If you set `MCP_ALLOWED_HOSTS`, include the hostname clients use (for example `docker01.casawero.home`).
 
 You can configure this server in either location:
 
@@ -231,7 +231,7 @@ Troubleshooting in VS Code:
 - If tools do not appear, restart the server from **MCP: List Servers** and reopen Copilot Chat.
 - If startup fails with `TypeError: fetch failed`, test reachability from your VS Code machine with `curl -sS http://docker01.casawero.home:3000/healthz`.
 - Ensure your container publish is remote-accessible (`-p 3000:3000`, not `127.0.0.1:3000:3000`) and that firewall rules allow TCP/3000.
-- When `MCP_BIND=0.0.0.0`, verify `MCP_ALLOWED_HOSTS` includes the hostname used in the MCP URL.
+- If `MCP_ALLOWED_HOSTS` is set, verify it includes the hostname used in the MCP URL.
 
 ### Claude Desktop (`claude_desktop_config.json`)
 

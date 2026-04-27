@@ -31,15 +31,9 @@ async function startHttp(): Promise<void> {
   // Build an Express app with built-in DNS-rebinding protection
   const app = createMcpExpressApp({
     host: config.bindHost,
-    // Pass allowed hosts if binding to 0.0.0.0 so the SDK can protect them
-    ...(config.bindHost === '0.0.0.0' || config.bindHost === '::'
-      ? {
-          allowedHosts:
-            config.allowedHosts.length > 0
-              ? config.allowedHosts
-              : ['localhost', '127.0.0.1', '[::1]'],
-        }
-      : {}),
+    // If MCP_ALLOWED_HOSTS is set, enforce that allowlist.
+    // If unset, allow all host headers (useful for remote clients).
+    ...(config.allowedHosts.length > 0 ? { allowedHosts: config.allowedHosts } : {}),
   });
 
   // Additional Origin header validation when an explicit allowlist is provided

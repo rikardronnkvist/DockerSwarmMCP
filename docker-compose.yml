@@ -18,8 +18,8 @@ services:
       MCP_ALLOW_NO_ORIGIN: "true"
       # Comma-separated Origin allowlist (leave empty to skip Origin checks)
       # MCP_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
-      # Optional Host header allowlist when binding to 0.0.0.0/::
-      # MCP_ALLOWED_HOSTS: "docker01.contoso.home,localhost,127.0.0.1"
+      # Optional Host header allowlist. Leave unset to allow all hosts.
+      # MCP_ALLOWED_HOSTS: "docker01.contoso.local,docker01,localhost,127.0.0.1"
       # Set to "false" to enable write operations (scale service, etc.)
       READ_ONLY: "true"
       # Override Docker socket / host (optional)
