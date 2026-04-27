@@ -34,6 +34,18 @@ interface ExecOutput {
   stderr: string;
 }
 
+function formatCommandLine(command: string[]): string {
+  return command
+    .map(arg => {
+      // Quote args that contain whitespace or quotes for easier copy/paste.
+      if (/\s|"/.test(arg)) {
+        return `"${arg.replace(/"/g, '\\"')}"`;
+      }
+      return arg;
+    })
+    .join(' ');
+}
+
 export function registerExecContainerCommand(server: McpServer): void {
   server.tool(
     'swarm_exec_container',
@@ -42,9 +54,13 @@ export function registerExecContainerCommand(server: McpServer): void {
     async (args) => {
       try {
         const docker = getDockerClient();
+        const commandLine = formatCommandLine(args.command);
 
         logger.debug(
           `exec_container_command request: container=${args.containerIdOrName} command=${JSON.stringify(args.command)}`,
+        );
+        logger.info(
+          `exec_container_command running: container=${args.containerIdOrName} command=${commandLine}`,
         );
 
         // Get the container
