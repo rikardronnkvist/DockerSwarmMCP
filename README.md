@@ -339,6 +339,24 @@ Troubleshooting in VS Code:
 }
 ```
 
+**Remote HTTPS via `mcp-remote`** (use when Claude Desktop rejects the `url` field, or the server uses a self-signed certificate):
+
+```json
+{
+  "mcpServers": {
+    "docker-swarm": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://dockerswarm-mcp.example.com/mcp"],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
+```
+
+> **Note:** `NODE_TLS_REJECT_UNAUTHORIZED=0` disables TLS certificate verification. Only use this on a trusted private network with a self-signed certificate. If your CA is installed in the macOS system keychain, use `"NODE_OPTIONS": "--use-system-ca"` instead.
+
 ### Cursor (`~/.cursor/mcp.json`)
 
 Remote Swarm (recommended):
